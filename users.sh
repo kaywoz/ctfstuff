@@ -5,7 +5,11 @@ generate_random_past_date() {
     past_year=$(date -d "last year" +%Y)
     random_month=$(shuf -i 1-12 -n 1)
     random_day=$(shuf -i 1-28 -n 1) # Keeping it 28 to avoid issues with February
-    echo "${past_year}${random_month}${random_day}0000"
+
+   # Format the month and day to have leading zeros
+    printf "%04d%02d%02d0000\n" "$past_year" "$random_month" "$random_day"
+
+
 }
 
 # Function to generate a random date
@@ -102,14 +106,24 @@ for (( i = 0; i < num_users; i++ )); do
 
         # Set the random date and time as the modify time
         sudo touch -t "${year}${month}${day}${hour}${minute}" "/home/$username/$filename"
-        sudo touch -t "${year}${month}${day}${hour}${minute}" "/home/$username/.ssh/authorized_keys"
+
+        # Change the modify time of the user's .ssh/authorized_keys file
+        user_ssh_modify_date=$(generate_random_past_date)
+        sudo touch -t "$user_ssh_modify_date" "/home/$username/.ssh/authorized_keys"
+        sudo chown $username:$username "/home/$username/.ssh/authorized_keys"
+
     done
 
     # Change the modify time of the user's home directory
     user_home_modify_date=$(generate_random_past_date)
     sudo touch -t "$user_home_modify_date" "/home/$username"
-    sudo touch -t "$user_home_modify_date" "/home/$username/.ssh/authorized_keys"
     sudo chown $username:$username "/home/$username"
+
+
+    # Change the modify time of the user's .ssh directory
+    user_ssh_modify_date=$(generate_random_past_date)
+    sudo chown -R $username:$username "/home/$username/.ssh"
+    sudo touch -t "$user_ssh_modify_date" "/home/$username/.ssh"
 done
 
 echo "User creation complete."
